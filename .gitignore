@@ -4,3 +4,4 @@ __pycache__/
 .DS_Store
 data/scheme_ai.db
 .env
+implementation_plan.md
