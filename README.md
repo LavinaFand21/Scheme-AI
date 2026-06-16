@@ -27,7 +27,7 @@ minor_project/
 ├── frontend/
 │   └── app.py              # Streamlit dashboard, voice recorder, & chat assistant
 ├── data/
-│   └── schemes.json        # Seeded government schemes
+│   └── schemes.json        # 54 seeded government schemes
 ├── scripts/
 │   └── ingest.py           # Database seeding pipeline
 ├── requirements.txt        # Core dependencies (including groq and python-multipart)
