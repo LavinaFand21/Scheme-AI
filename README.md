@@ -62,7 +62,7 @@ export GEMINI_API_KEY="your_gemini_api_key_here"
 # Required for Voice Dictation (Speech-to-Text transcription)
 export GROQ_API_KEY="your_groq_api_key_here"
 ```
-*Note: If no Gemini API key is provided, the application will run in **Demo Mode**, utilizing local heuristic matching and search-grounded text rendering. The Groq API key is required to utilize the voice input microphone feature.*
+*Note: If neither `GEMINI_API_KEY` nor `GROQ_API_KEY` is provided, the application will run in **Demo Mode** (using local heuristic matching and search-grounded text rendering). If only `GROQ_API_KEY` is provided, all features (including Chat, Eligibility, and Voice Dictation) will run fully using Groq.*
 
 ### 4. Ingest and Seed Database
 Run the ingestion pipeline to initialize the SQLite database and generate vector embeddings for RAG:
