@@ -120,7 +120,7 @@ h1, h2, h3, .title-text {
 .scheme-title {
     font-size: 1.55rem;
     font-weight: 800;
-    color: #0f172a;
+    color: #0f172a !important;
     margin: 0;
 }
 
