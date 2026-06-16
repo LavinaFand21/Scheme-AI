@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from backend.database import init_db, upsert_scheme, get_db_connection
-from backend.vector_store import add_documents_to_store
+from backend.vector_store import add_documents_to_store, init_vector_store_db
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 def ingest_data():
     logger.info("Initializing SQLite database...")
     init_db()
+    init_vector_store_db()
     
     schemes_json_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "schemes.json")
     if not os.path.exists(schemes_json_path):
