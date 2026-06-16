@@ -40,10 +40,52 @@ app.add_middleware(
 def startup_event():
     logger.info("Starting up FastAPI application...")
     init_db()
+    try:
+        query_vector_store("government scheme eligibility")
+        logger.info("Vector store warmed up successfully.")
+    except Exception as e:
+        logger.error(f"Error warming up vector store: {e}")
 
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy"}
+
+from fastapi import FastAPI, HTTPException, status, UploadFile, File, Form
+from pydantic import BaseModel
+class ClientLogRequest(BaseModel):
+    message: str
+
+@app.post("/api/log")
+def client_log(log_req: ClientLogRequest):
+    logger.info(f"[CLIENT LOG] {log_req.message}")
+    return {"status": "ok"}
+
+@app.post("/api/transcribe")
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    language: str = Form("en")
+):
+    try:
+        content = await file.read()
+        groq_key = os.environ.get("GROQ_API_KEY")
+        if not groq_key:
+            raise HTTPException(status_code=500, detail="Groq API key not found in environment.")
+            
+        from groq import Groq
+        client = Groq(api_key=groq_key)
+        
+        # Call Groq Whisper API
+        transcription = client.audio.transcriptions.create(
+            file=("audio.webm", content, "audio/webm"),
+            model="whisper-large-v3",
+            language=language,
+            temperature=0.0
+        )
+        logger.info(f"Transcription successful: {transcription.text}")
+        return {"transcript": transcription.text}
+    except Exception as e:
+        logger.error(f"Error transcribing audio: {e}")
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
 
 @app.post("/api/profile", response_model=UserProfileResponse, status_code=status.HTTP_201_CREATED)
 def create_profile(profile: UserProfileRequest):

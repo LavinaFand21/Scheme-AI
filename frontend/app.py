@@ -251,6 +251,66 @@ h1, h2, h3, .title-text {
     margin-right: auto;
     border-bottom-left-radius: 2px;
 }
+
+/* Sleek Mic Button Styling */
+#mic-button-container {
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 999999 !important;
+}
+
+#custom-mic-btn {
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 999999 !important;
+    cursor: pointer !important;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    outline: none;
+    padding: 0;
+    margin: 0 auto;
+}
+
+#custom-mic-btn:hover {
+    background-color: #0f172a;
+    border-color: #475569;
+    transform: scale(1.05);
+}
+
+#custom-mic-btn.active {
+    background-color: #ef4444;
+    border-color: #f87171;
+    animation: mic-pulse 1.5s infinite;
+}
+
+#custom-mic-btn:disabled {
+    background-color: #475569;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+@keyframes mic-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        transform: scale(1);
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -495,14 +555,26 @@ with tab_recs:
 with tab_chat:
     st.markdown("### Conversational Application Assistant")
 
-    # Sleek horizontal model reasoning toggle placed contextually inside the chat tab
-    model_mode = st.radio(
-        "Assistant Reasoning Level:",
-        ["Smart (70B)", "Fast (8B)"],
-        index=0,
-        horizontal=True,
-        help="Smart uses Meta Llama-3.3 70B for deep policy analysis. Fast uses Meta Llama-3.1 8B to minimize latency."
-    )
+    # Layout toggles side by side
+    col_toggles1, col_toggles2 = st.columns(2)
+    with col_toggles1:
+        model_mode = st.radio(
+            "Assistant Reasoning Level:",
+            ["Smart (70B)", "Fast (8B)"],
+            index=0,
+            horizontal=True,
+            help="Smart uses Meta Llama-3.3 70B for deep policy analysis. Fast uses Meta Llama-3.1 8B to minimize latency."
+        )
+    with col_toggles2:
+        voice_lang = st.radio(
+            "Voice Dictation Language:",
+            ["English (IN)", "Hindi (IN)"],
+            index=0,
+            horizontal=True,
+            help="Select the language for voice dictation transcription."
+        )
+    
+    lang_code = "en-IN" if voice_lang == "English (IN)" else "hi-IN"
     
     # Active scheme context display
     if st.session_state.selected_scheme_id:
@@ -533,12 +605,225 @@ with tab_chat:
 
     # Chat Input Form
     with st.form("chat_form", clear_on_submit=True):
-        user_query = st.text_input("Type your message here...", placeholder="Ask how to apply, which documents are required, etc.")
-        submitted = st.form_submit_button("Send 🚀")
-        
+        col_text, col_mic, col_send = st.columns([10, 1.2, 1.8])
+        with col_text:
+            user_query = st.text_input("Type your message here...", placeholder="Ask how to apply, which documents are required, etc.", label_visibility="collapsed")
+        with col_mic:
+            st.markdown('<div id="mic-button-container" style="display: flex; justify-content: center; align-items: center; height: 100%; margin-top: 4px;"></div>', unsafe_allow_html=True)
+        with col_send:
+            submitted = st.form_submit_button("Send 🚀", use_container_width=True)
         if submitted and user_query:
             st.session_state.chat_history.append({"user": user_query.strip(), "assistant": "Thinking..."})
             st.rerun()
+    iframe_code = f"""
+    <script>
+    (function() {{
+        const parentWin = window.parent;
+        const doc = parentWin.document;
+        
+        // Remove existing script tag if any
+        const SCRIPT_ID = 'speech-recognition-bridge-script';
+        const existingScript = doc.getElementById(SCRIPT_ID);
+        if (existingScript) {{
+            existingScript.remove();
+        }}
+        
+        // Inject script to execute in the parent's window context
+        const script = doc.createElement('script');
+        script.id = SCRIPT_ID;
+        script.innerHTML = `
+            (function() {{
+                function logToBackend(msg) {{
+                    fetch('http://localhost:8000/api/log', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify({{ message: msg }})
+                    }}).catch(err => {{}});
+                }}
+                
+                const console = {{
+                    log: (msg) => logToBackend("[INFO] " + msg),
+                    error: (msg) => logToBackend("[ERROR] " + msg),
+                    warn: (msg) => logToBackend("[WARN] " + msg)
+                }};
+                
+                console.log("MediaRecorder script loaded in parent context.");
+                
+                if (window.__speech_mic_timer) {{
+                    clearTimeout(window.__speech_mic_timer);
+                }}
+                
+                function initParentMic() {{
+                    const container = document.getElementById('mic-button-container');
+                    const inputEl = Array.from(document.querySelectorAll('input[type="text"], textarea'))
+                        .find(el => el.placeholder && el.placeholder.includes("Ask how to apply"));
+                        
+                    if (!container || !inputEl) {{
+                        console.log("Searching for container or inputEl...");
+                        window.__speech_mic_timer = setTimeout(initParentMic, 200);
+                        return;
+                    }}
+                    
+                    console.log("Container and Input elements found. Setting up mic button...");
+                    
+                    // Clear container to avoid duplicate elements/listeners
+                    container.innerHTML = '';
+                    container.style.display = 'flex';
+                    container.style.flexDirection = 'column';
+                    container.style.alignItems = 'center';
+                    container.style.justifyContent = 'center';
+                    container.style.cursor = 'pointer';
+                    container.style.pointerEvents = 'auto';
+                    
+                    const btn = document.createElement('div');
+                    btn.id = 'custom-mic-btn';
+                    btn.title = "Click to dictate prompt";
+                    btn.style.pointerEvents = 'none'; // Click bubbles up to container
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>';
+                    container.appendChild(btn);
+                    
+                    const statusText = document.createElement('div');
+                    statusText.id = 'mic-status-text';
+                    statusText.style.fontSize = '10px';
+                    statusText.style.color = '#64748b';
+                    statusText.style.marginTop = '4px';
+                    statusText.style.textAlign = 'center';
+                    statusText.style.whiteSpace = 'nowrap';
+                    statusText.style.pointerEvents = 'none'; // Click bubbles up to container
+                    statusText.innerText = 'Click to speak';
+                    container.appendChild(statusText);
+                    
+                    let mediaRecorder = null;
+                    let audioChunks = [];
+                    let isRecording = false;
+                    let initialText = "";
+                    let streamRef = null;
+                    
+                    function stopRecording() {{
+                        console.log("Stopping recording...");
+                        isRecording = false;
+                        btn.classList.remove('active');
+                        btn.title = "Click to dictate prompt";
+                        
+                        if (mediaRecorder && mediaRecorder.state !== 'inactive') {{
+                            mediaRecorder.stop();
+                        }}
+                        if (streamRef) {{
+                            streamRef.getTracks().forEach(track => track.stop());
+                        }}
+                    }}
+                    
+                    function startRecording() {{
+                        audioChunks = [];
+                        console.log("Requesting mic access...");
+                        
+                        navigator.mediaDevices.getUserMedia({{ audio: true }})
+                            .then(stream => {{
+                                console.log("Mic access granted. Setting up MediaRecorder...");
+                                streamRef = stream;
+                                mediaRecorder = new MediaRecorder(stream, {{ mimeType: 'audio/webm' }});
+                                
+                                mediaRecorder.ondataavailable = event => {{
+                                    if (event.data.size > 0) {{
+                                        audioChunks.push(event.data);
+                                    }}
+                                }};
+                                
+                                mediaRecorder.onstop = () => {{
+                                    console.log("MediaRecorder stopped. Preparing upload...");
+                                    statusText.innerText = 'Transcribing...';
+                                    statusText.style.color = '#e28743'; // Orange
+                                    
+                                    const audioBlob = new Blob(audioChunks, {{ type: 'audio/webm' }});
+                                    const formData = new FormData();
+                                    formData.append('file', audioBlob, 'audio.webm');
+                                    const lang = "{lang_code}".split('-')[0];
+                                    formData.append('language', lang);
+                                    
+                                    console.log("Uploading audio.webm (" + audioBlob.size + " bytes) in lang=" + lang + " to /api/transcribe...");
+                                    
+                                    fetch('http://localhost:8000/api/transcribe', {{
+                                        method: 'POST',
+                                        body: formData
+                                    }})
+                                    .then(res => {{
+                                        if (!res.ok) {{
+                                            throw new Error('Server returned ' + res.status);
+                                        }}
+                                        return res.json();
+                                    }})
+                                    .then(data => {{
+                                        console.log("Transcription response: " + data.transcript);
+                                        if (data.transcript && data.transcript.trim()) {{
+                                            let newValue = initialText;
+                                            if (newValue && !newValue.endsWith(' ')) {{
+                                                newValue += ' ';
+                                            }}
+                                            newValue += data.transcript.trim();
+                                            
+                                            const prototype = inputEl.tagName === 'TEXTAREA' 
+                                                ? HTMLTextAreaElement.prototype 
+                                                : HTMLInputElement.prototype;
+                                            const nativeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value').set;
+                                            nativeValueSetter.call(inputEl, newValue);
+                                            
+                                            const ev = new Event('input', {{ bubbles: true }});
+                                            inputEl.dispatchEvent(ev);
+                                        }}
+                                        statusText.innerText = 'Click to speak';
+                                        statusText.style.color = '#64748b';
+                                    }})
+                                    .catch(err => {{
+                                        console.error("Transcription failed: " + err.message);
+                                        statusText.innerText = 'Error: ' + err.message;
+                                        statusText.style.color = '#ef4444';
+                                        btn.classList.remove('active');
+                                    }});
+                                }};
+                                
+                                mediaRecorder.start();
+                                isRecording = true;
+                                btn.classList.add('active');
+                                statusText.innerText = 'Recording...';
+                                statusText.style.color = '#ef4444';
+                                initialText = inputEl.value;
+                                
+                                // Auto stop recording after 20 seconds to prevent massive uploads
+                                setTimeout(() => {{
+                                    if (isRecording) {{
+                                        console.log("Auto-stopping recording after 20 seconds limit.");
+                                        stopRecording();
+                                    }}
+                                }}, 20000);
+                            }})
+                            .catch(err => {{
+                                console.error("Mic access denied or error: " + err.name + " - " + err.message);
+                                statusText.innerText = 'Error: ' + err.name;
+                                statusText.style.color = '#ef4444';
+                                btn.classList.remove('active');
+                            }});
+                    }}
+                    
+                    container.onclick = (e) => {{
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log("Mic container clicked! isRecording = " + isRecording);
+                        if (isRecording) {{
+                            stopRecording();
+                        }} else {{
+                            startRecording();
+                        }}
+                    }};
+                }}
+                
+                initParentMic();
+            }})();
+        `;
+        doc.body.appendChild(script);
+    }})();
+    </script>
+    """
+    st.components.v1.html(iframe_code, height=0)
 
     # Process response if last message is from user and assistant is "Thinking..."
     if st.session_state.chat_history and st.session_state.chat_history[-1]["assistant"] == "Thinking...":
