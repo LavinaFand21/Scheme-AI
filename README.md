@@ -1,5 +1,7 @@
 # Scheme-AI: Government Scheme Eligibility & Application Assistant
 
+🚀 **Live Web Application:** [Access Scheme-AI here](https://scheme-ai-gwwcupwmsehdxmhfugverz.streamlit.app)
+
 An Agentic AI assistant built for data science and computer science student projects. It performs conversational profiling, filters government welfare schemes based on demographic constraints, and uses a Retrieval-Augmented Generation (RAG) agent to explain benefits and provide step-by-step application guidance.
 
 ---
