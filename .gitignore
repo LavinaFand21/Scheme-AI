@@ -2,6 +2,5 @@
 __pycache__/
 *.pyc
 .DS_Store
-data/scheme_ai.db
 .env
 implementation_plan.md

@@ -10,7 +10,19 @@ from google import genai
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "scheme_ai.db")
+# Check if running on Vercel
+IS_VERCEL = os.environ.get("VERCEL") == "1"
+
+ORIGINAL_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "scheme_ai.db")
+
+if IS_VERCEL:
+    DB_PATH = "/tmp/scheme_ai.db"
+    # Copy from original read-only location to /tmp on startup if it doesn't exist
+    if not os.path.exists(DB_PATH) and os.path.exists(ORIGINAL_DB_PATH):
+        import shutil
+        shutil.copyfile(ORIGINAL_DB_PATH, DB_PATH)
+else:
+    DB_PATH = ORIGINAL_DB_PATH
 
 # Log environment key state
 api_key = os.environ.get("GEMINI_API_KEY")
