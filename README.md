@@ -20,6 +20,7 @@ An Agentic AI assistant built for data science and computer science student proj
 
 ```text
 minor_project/
+├── Documents/              # Project Synopsis, Poster, Presentation, & User Manual
 ├── backend/
 │   ├── database.py         # SQLite connection & CRUD operations (thread-safe)
 │   ├── vector_store.py     # Custom SQLite-based vector store (RAG)
