@@ -34,7 +34,7 @@ st.set_page_config(
 )
 
 # API Server Configuration
-API_BASE_URL = "http://localhost:8000/api"
+API_BASE_URL = "https://scheme-ai-chi.vercel.app/api"
 
 def check_api_server():
     """Verify if the FastAPI backend is running."""
@@ -634,7 +634,7 @@ with tab_chat:
         script.innerHTML = `
             (function() {{
                 function logToBackend(msg) {{
-                    fetch('http://localhost:8000/api/log', {{
+                    fetch('https://scheme-ai-chi.vercel.app/api/log', {{
                         method: 'POST',
                         headers: {{ 'Content-Type': 'application/json' }},
                         body: JSON.stringify({{ message: msg }})
@@ -742,7 +742,7 @@ with tab_chat:
                                     
                                     console.log("Uploading audio.webm (" + audioBlob.size + " bytes) in lang=" + lang + " to /api/transcribe...");
                                     
-                                    fetch('http://localhost:8000/api/transcribe', {{
+                                    fetch('https://scheme-ai-chi.vercel.app/api/transcribe', {{
                                         method: 'POST',
                                         body: formData
                                     }})
